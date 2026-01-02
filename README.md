@@ -54,12 +54,16 @@
 
 ### Step 2: Download SubHunter
 
+**Option A: Using Git**
 ```bash
-git clone https://github.com/yourusername/subhunter.git
-cd subhunter
+git clone https://github.com/pengodehandal/subdomain-finder.git
+cd subdomain-finder
 ```
 
-Or download ZIP and extract it.
+**Option B: Download ZIP**
+1. Click the green "Code" button above
+2. Select "Download ZIP"
+3. Extract the ZIP file
 
 ### Step 3: Install Dependencies
 
@@ -69,15 +73,32 @@ Open **Command Prompt** or **PowerShell** in the SubHunter folder:
 pip install playwright
 ```
 
+Or simply double-click `install.bat`
+
 ### Step 4: Install Browser
 
 ```bash
 playwright install chromium
 ```
 
+This is included in `install.bat` if you used that method.
+
 ## 📝 Usage
 
-### 1. Prepare Domain List
+### Method 1: Using run.bat (Easy)
+
+1. Double-click `run.bat`
+2. Follow the prompts
+
+### Method 2: Using Command Line
+
+```bash
+python subhunter.py
+```
+
+### Step-by-Step Guide
+
+#### 1. Prepare Domain List
 
 Create a text file (e.g., `domains.txt`) with one domain per line:
 
@@ -88,13 +109,13 @@ company.co.id
 university.ac.id
 ```
 
-### 2. Run SubHunter
+#### 2. Run SubHunter
 
 ```bash
 python subhunter.py
 ```
 
-### 3. Follow the Prompts
+#### 3. Follow the Prompts
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
@@ -109,11 +130,11 @@ python subhunter.py
 >>> results.txt
 ```
 
-### 4. Handle CAPTCHA (if appears)
+#### 4. Handle CAPTCHA (if appears)
 
 When a CAPTCHA appears in the browser window, simply solve it manually. The script will wait and continue automatically.
 
-### 5. Get Results
+#### 5. Get Results
 
 Results are saved to your specified output file in real-time:
 
@@ -124,7 +145,7 @@ api.example.com
 dev.example.com
 ```
 
-## 📸 Screenshots
+## 📸 Example Output
 
 ```
 [+] Found 212 subdomains for ut.ac.id
@@ -185,6 +206,16 @@ dev.example.com
 └─────────────────┘
 ```
 
+## ❓ Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `python is not recognized` | Reinstall Python and check "Add to PATH" |
+| `playwright not found` | Run `pip install playwright` |
+| Browser doesn't open | Run `playwright install chromium` |
+| No subdomains found | Check your internet connection, or the website may be blocking requests |
+| Script crashes | Your results are safe! Check the output file |
+
 ## 🛡️ Disclaimer
 
 This tool is for **educational and authorized security testing purposes only**. Always obtain proper authorization before scanning any domains you don't own. The developers are not responsible for any misuse of this tool.
@@ -224,12 +255,16 @@ This tool is for **educational and authorized security testing purposes only**. 
 
 ### Langkah 2: Download SubHunter
 
+**Opsi A: Pakai Git**
 ```bash
-git clone https://github.com/yourusername/subhunter.git
-cd subhunter
+git clone https://github.com/pengodehandal/subdomain-finder.git
+cd subdomain-finder
 ```
 
-Atau download ZIP dan extract.
+**Opsi B: Download ZIP**
+1. Klik tombol hijau "Code" di atas
+2. Pilih "Download ZIP"
+3. Extract file ZIP nya
 
 ### Langkah 3: Install Dependencies
 
@@ -239,15 +274,32 @@ Buka **Command Prompt** atau **PowerShell** di folder SubHunter:
 pip install playwright
 ```
 
+Atau tinggal double-click `install.bat`
+
 ### Langkah 4: Install Browser
 
 ```bash
 playwright install chromium
 ```
 
+Ini sudah termasuk di `install.bat` kalau kamu pakai cara itu.
+
 ## 📝 Cara Pakai
 
-### 1. Siapkan List Domain
+### Cara 1: Pakai run.bat (Gampang)
+
+1. Double-click `run.bat`
+2. Ikuti petunjuknya
+
+### Cara 2: Pakai Command Line
+
+```bash
+python subhunter.py
+```
+
+### Panduan Langkah demi Langkah
+
+#### 1. Siapkan List Domain
 
 Buat file text (contoh: `domains.txt`) dengan satu domain per baris:
 
@@ -258,13 +310,13 @@ company.co.id
 university.ac.id
 ```
 
-### 2. Jalankan SubHunter
+#### 2. Jalankan SubHunter
 
 ```bash
 python subhunter.py
 ```
 
-### 3. Ikuti Instruksi
+#### 3. Ikuti Instruksi
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
@@ -279,11 +331,11 @@ python subhunter.py
 >>> results.txt
 ```
 
-### 4. Handle CAPTCHA (kalau muncul)
+#### 4. Handle CAPTCHA (kalau muncul)
 
 Ketika CAPTCHA muncul di jendela browser, tinggal solve manual aja. Script akan nunggu dan lanjut otomatis.
 
-### 5. Ambil Hasil
+#### 5. Ambil Hasil
 
 Hasil disimpan ke file output secara real-time:
 
@@ -356,6 +408,16 @@ dev.example.com
 └─────────────────┘
 ```
 
+## ❓ Troubleshooting / Solusi Masalah
+
+| Masalah | Solusi |
+|---------|--------|
+| `python is not recognized` | Install ulang Python dan centang "Add to PATH" |
+| `playwright not found` | Jalankan `pip install playwright` |
+| Browser ga kebuka | Jalankan `playwright install chromium` |
+| Ga nemu subdomain | Cek koneksi internet, atau website mungkin blocking |
+| Script crash | Hasil aman! Cek file output nya |
+
 ## 🛡️ Disclaimer
 
 Tool ini hanya untuk **tujuan edukasi dan pengujian keamanan yang sudah diizinkan**. Selalu dapatkan izin yang tepat sebelum scanning domain yang bukan milik kamu. Developer tidak bertanggung jawab atas penyalahgunaan tool ini.
@@ -364,18 +426,18 @@ Tool ini hanya untuk **tujuan edukasi dan pengujian keamanan yang sudah diizinka
 
 ## 📄 License
 
-MIT License - feel free to use and modify!
+MIT License - bebas dipakai dan dimodifikasi!
 
 ## 🤝 Contributing
 
-Pull requests are welcome! For major changes, please open an issue first.
+Pull requests welcome! Untuk perubahan besar, silakan buka issue dulu.
 
-## ⭐ Star This Repo!
+## ⭐ Star Repo Ini!
 
-If you find this tool useful, please give it a star! ⭐
+Kalau tool ini berguna, kasih bintang ya! ⭐
 
 ---
 
 <p align="center">
-  Made with ❤️ for the security research community
+  Made with ❤️ by <a href="https://github.com/pengodehandal">@pengodehandal</a>
 </p>
