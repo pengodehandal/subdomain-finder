@@ -2,6 +2,7 @@
 """
 Mass Subdomain Finder using Live Browser (Playwright)
 Website: https://subdomainfinder.c99.nl/
+FIXED VERSION - Updated selectors for 2024/2025
 """
 
 import asyncio
@@ -23,10 +24,11 @@ def print_banner():
 ╔═══════════════════════════════════════════════════════════╗
 ║            SUBHUNTER - Mass Subdomain Discovery           ║
 ║                   Live Browser Edition                    ║
+║                      [FIXED VERSION]                      ║
 ╚═══════════════════════════════════════════════════════════╝
 {Colors.RESET}
-    {Colors.YELLOW}[*] GitHub: github.com/pengodehandal/subdomain-finder{Colors.RESET}
-    {Colors.YELLOW}[*] Platform: Windows Only{Colors.RESET}
+    {Colors.YELLOW}[*] Website: subdomainfinder.c99.nl{Colors.RESET}
+    {Colors.YELLOW}[*] Updated selectors for 2024/2025{Colors.RESET}
 """
     print(banner)
 
@@ -34,7 +36,7 @@ async def find_subdomains(domain: str, page, all_subdomains: list, output_file: 
     """Scan single domain for subdomains"""
     print(f"\n{Colors.YELLOW}[*] Scanning: {domain}{Colors.RESET}")
     
-    # Extract base domain for filtering (e.g., "undip.ac.id" from input)
+    # Extract base domain for filtering
     base_domain = domain.lower().strip()
     
     try:
@@ -42,139 +44,132 @@ async def find_subdomains(domain: str, page, all_subdomains: list, output_file: 
         await page.goto("https://subdomainfinder.c99.nl/", wait_until="networkidle", timeout=60000)
         print(f"{Colors.GREEN}[+] Page loaded successfully{Colors.RESET}")
         
-        # Wait for input field
-        await page.wait_for_selector('input#domain9', timeout=30000)
-        print(f"{Colors.GREEN}[+] Found input field: input#domain9{Colors.RESET}")
+        # Wait for the NEW input field selector
+        await page.wait_for_selector('input#cdomain', timeout=30000)
+        print(f"{Colors.GREEN}[+] Found input field: input#cdomain{Colors.RESET}")
         
         # Clear and fill the domain input
-        await page.fill('input#domain9', '')
-        await page.fill('input#domain9', domain)
+        await page.fill('input#cdomain', '')
+        await page.fill('input#cdomain', domain)
         print(f"{Colors.GREEN}[+] Domain entered: {domain}{Colors.RESET}")
         
-        # Click the scan button
-        await page.click('button#scan_subdomains')
-        print(f"{Colors.CYAN}[*] Scan started... waiting for results{Colors.RESET}")
+        # Small delay before clicking
+        await asyncio.sleep(1)
         
-        # Wait for results - look for the copy button which appears when results are ready
-        # This might take a while depending on the domain
-        try:
-            await page.wait_for_selector('span[onclick*="copyAllSubdomains"]', timeout=120000)
-            print(f"{Colors.GREEN}[+] Results loaded!{Colors.RESET}")
-        except:
-            print(f"{Colors.YELLOW}[!] Timeout waiting for results, checking if any subdomains found...{Colors.RESET}")
+        # Click the scan button - try multiple selectors
+        scan_clicked = False
+        scan_selectors = [
+            'button:has-text("Start Scan")',
+            'button:has-text("Scan")',
+            'button[type="submit"]',
+            'input[type="submit"]',
+            '#scan_subdomains',
+            '.btn-primary',
+            'button.btn'
+        ]
         
-        # Small delay to ensure everything is loaded
-        await asyncio.sleep(3)
+        for selector in scan_selectors:
+            try:
+                btn = await page.query_selector(selector)
+                if btn:
+                    await btn.click()
+                    print(f"{Colors.GREEN}[+] Clicked scan button: {selector}{Colors.RESET}")
+                    scan_clicked = True
+                    break
+            except:
+                continue
         
-        # Debug: Print table structure to console
-        print(f"{Colors.CYAN}[DEBUG] Inspecting page structure...{Colors.RESET}")
-        table_info = await page.evaluate('''
-            () => {
-                let info = [];
-                let tables = document.querySelectorAll('table');
-                tables.forEach((table, idx) => {
-                    let rows = table.querySelectorAll('tr');
-                    if (rows.length > 0) {
-                        let firstRow = rows[0];
-                        let cells = firstRow.querySelectorAll('td, th');
-                        let headers = Array.from(cells).map(c => c.innerText.trim().substring(0, 30));
-                        info.push(`Table ${idx}: ${rows.length} rows, headers: ${headers.join(' | ')}`);
-                    }
-                });
-                return info.join('\\n');
-            }
-        ''')
-        if table_info:
-            print(f"{Colors.CYAN}[DEBUG] {table_info}{Colors.RESET}")
+        if not scan_clicked:
+            # Fallback: press Enter on the input field
+            await page.press('input#cdomain', 'Enter')
+            print(f"{Colors.YELLOW}[*] Pressed Enter to submit{Colors.RESET}")
         
-        # METHOD 1: Try to get subdomains via the copyAllSubdomains function
-        # This extracts what the "Copy to clipboard" button would copy
-        print(f"{Colors.CYAN}[*] Trying to extract subdomains...{Colors.RESET}")
+        print(f"{Colors.CYAN}[*] Scan started... waiting for results (max 2 min){Colors.RESET}")
         
-        # First, let's intercept what copyAllSubdomains would copy
-        # by overriding the clipboard API temporarily
+        # Wait for results - multiple possible indicators
+        result_found = False
+        result_selectors = [
+            'span[onclick*="copyAllSubdomains"]',
+            'table tbody tr',
+            '.result-table',
+            '#results',
+            'table tr td'
+        ]
+        
+        for selector in result_selectors:
+            try:
+                await page.wait_for_selector(selector, timeout=120000)
+                print(f"{Colors.GREEN}[+] Results indicator found: {selector}{Colors.RESET}")
+                result_found = True
+                break
+            except:
+                continue
+        
+        if not result_found:
+            print(f"{Colors.YELLOW}[!] Timeout waiting for results, checking anyway...{Colors.RESET}")
+        
+        # Extra delay to ensure everything is loaded
+        await asyncio.sleep(5)
+        
+        # Extract subdomains
+        print(f"{Colors.CYAN}[*] Extracting subdomains...{Colors.RESET}")
+        
         subdomains = await page.evaluate('''
             (baseDomain) => {
                 let subs = [];
                 
-                // Method A: Check for data in result table - specifically the Subdomain column (first column)
-                let table = document.querySelector('table');
-                if (table) {
+                // Method 1: Check for data in result table
+                let tables = document.querySelectorAll('table');
+                tables.forEach(table => {
                     let rows = table.querySelectorAll('tbody tr, tr');
                     rows.forEach((row, idx) => {
-                        // Skip header row
                         let cells = row.querySelectorAll('td');
                         if (cells.length >= 1) {
                             let text = cells[0].innerText.trim().toLowerCase();
-                            // Validate it's a subdomain, not IP, not empty, not header text
-                            // AND must end with the base domain (filter out "Recent scans")
+                            // Validate it's a subdomain
                             if (text && 
                                 text.includes('.') && 
                                 text.endsWith(baseDomain) &&
                                 !text.match(/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/) &&
                                 !text.toLowerCase().includes('subdomain') &&
-                                !text.toLowerCase().includes('cloudflare') &&
                                 text.length > 3) {
                                 subs.push(text);
                             }
                         }
                     });
-                }
+                });
                 
-                // Method B: Look for the actual function and its data source
-                // Some sites store subdomains in a JS variable
+                // Method 2: Look for links containing the domain
                 if (subs.length === 0) {
-                    // Try to find any array containing domain-like strings
-                    let scripts = document.querySelectorAll('script');
-                    scripts.forEach(script => {
-                        let content = script.textContent || '';
-                        // Look for arrays with subdomain patterns
-                        let matches = content.match(/["']([a-zA-Z0-9][-a-zA-Z0-9]*\\.)+[a-zA-Z]{2,}["']/g);
-                        if (matches) {
-                            matches.forEach(m => {
-                                let clean = m.replace(/["']/g, '').toLowerCase();
-                                if (!clean.match(/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/) &&
-                                    clean.endsWith(baseDomain)) {
-                                    subs.push(clean);
-                                }
-                            });
+                    let links = document.querySelectorAll('a');
+                    links.forEach(link => {
+                        let text = link.innerText.trim().toLowerCase();
+                        if (text.endsWith(baseDomain) && 
+                            text.includes('.') &&
+                            !text.match(/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/)) {
+                            subs.push(text);
                         }
                     });
+                }
+                
+                // Method 3: Scan body text for domain patterns
+                if (subs.length === 0) {
+                    let body = document.body.innerText;
+                    let regex = new RegExp('[a-zA-Z0-9][a-zA-Z0-9.-]*\\\\.' + baseDomain.replace('.', '\\\\.'), 'gi');
+                    let matches = body.match(regex);
+                    if (matches) {
+                        matches.forEach(m => {
+                            let clean = m.toLowerCase();
+                            if (!clean.match(/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/)) {
+                                subs.push(clean);
+                            }
+                        });
+                    }
                 }
                 
                 return [...new Set(subs)];
             }
         ''', base_domain)
-        
-        # If first method didn't work, try alternative methods
-        if not subdomains:
-            print(f"{Colors.YELLOW}[*] First method didn't work, trying alternatives...{Colors.RESET}")
-            subdomains = await page.evaluate('''
-                (baseDomain) => {
-                    let subs = [];
-                    
-                    // Method: Scan all text looking for subdomain patterns
-                    let body = document.body.innerText;
-                    // Match patterns like: something.domain.tld
-                    let lines = body.split('\\n');
-                    lines.forEach(line => {
-                        let parts = line.trim().split(/\\s+/);
-                        parts.forEach(part => {
-                            let lowerPart = part.toLowerCase();
-                            // Check if it looks like a subdomain (has dots, not an IP)
-                            // AND must end with base domain
-                            if (lowerPart.includes('.') && 
-                                lowerPart.endsWith(baseDomain) &&
-                                !lowerPart.match(/^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/) &&
-                                lowerPart.match(/^[a-zA-Z0-9][a-zA-Z0-9.-]*\\.[a-zA-Z]{2,}$/)) {
-                                subs.push(lowerPart);
-                            }
-                        });
-                    });
-                    
-                    return [...new Set(subs)];
-                }
-            ''', base_domain)
         
         if subdomains:
             print(f"{Colors.GREEN}[+] Found {len(subdomains)} subdomains for {domain}{Colors.RESET}")
@@ -182,7 +177,7 @@ async def find_subdomains(domain: str, page, all_subdomains: list, output_file: 
                 print(f"    {Colors.CYAN}→ {sub}{Colors.RESET}")
             all_subdomains.extend(subdomains)
             
-            # REAL-TIME SAVE - append to file immediately
+            # REAL-TIME SAVE
             with open(output_file, 'a') as f:
                 for sub in subdomains:
                     f.write(sub + '\n')
@@ -217,8 +212,10 @@ async def main():
         return
     
     print(f"\n{Colors.GREEN}[+] Loaded {len(domains)} domains{Colors.RESET}")
-    for d in domains:
+    for d in domains[:10]:  # Show first 10 only
         print(f"    {Colors.CYAN}• {d}{Colors.RESET}")
+    if len(domains) > 10:
+        print(f"    {Colors.CYAN}• ... and {len(domains)-10} more{Colors.RESET}")
     
     # Get output file
     print(f"\n{Colors.CYAN}[?] Enter output file path (default: sublist.txt):{Colors.RESET}")
@@ -228,15 +225,14 @@ async def main():
     
     # Clear/create output file at start
     with open(output_file, 'w') as f:
-        f.write('')  # Clear file
+        f.write('')
     print(f"{Colors.GREEN}[+] Output file ready: {output_file}{Colors.RESET}")
     
-    print(f"\n{Colors.YELLOW}[*] Starting browser (headless=False so you can see & handle captcha if needed)...{Colors.RESET}")
+    print(f"\n{Colors.YELLOW}[*] Starting browser (visible mode for captcha handling)...{Colors.RESET}")
     
     async with async_playwright() as p:
-        # Launch browser in headed mode so user can see and handle captcha
         browser = await p.chromium.launch(
-            headless=False,  # Set to False so you can see the browser and handle captcha
+            headless=False,
             args=['--no-sandbox', '--disable-setuid-sandbox']
         )
         
@@ -248,7 +244,7 @@ async def main():
         page = await context.new_page()
         
         print(f"{Colors.GREEN}[+] Browser launched!{Colors.RESET}")
-        print(f"{Colors.YELLOW}[!] If captcha appears, solve it manually in the browser window{Colors.RESET}")
+        print(f"{Colors.YELLOW}[!] If captcha appears, solve it manually{Colors.RESET}")
         
         for i, domain in enumerate(domains, 1):
             print(f"\n{Colors.BOLD}{'='*50}{Colors.RESET}")
@@ -256,17 +252,20 @@ async def main():
             print(f"{Colors.BOLD}{'='*50}{Colors.RESET}")
             
             await find_subdomains(domain, page, all_subdomains, output_file)
+            
+            # Small delay between scans to avoid rate limiting
+            if i < len(domains):
+                print(f"{Colors.YELLOW}[*] Waiting 2 seconds before next scan...{Colors.RESET}")
+                await asyncio.sleep(2)
         
         await browser.close()
     
-    # Final summary and deduplication
+    # Final summary
     if all_subdomains:
-        # Read file and remove duplicates
         with open(output_file, 'r') as f:
             saved_subs = list(set([line.strip() for line in f if line.strip()]))
         saved_subs.sort()
         
-        # Write back deduplicated results
         with open(output_file, 'w') as f:
             for sub in saved_subs:
                 f.write(sub + '\n')
@@ -275,7 +274,6 @@ async def main():
         print(f"{Colors.GREEN}[+] SCAN COMPLETE!{Colors.RESET}")
         print(f"{Colors.GREEN}[+] Total unique subdomains: {len(saved_subs)}{Colors.RESET}")
         print(f"{Colors.GREEN}[+] Results saved to: {output_file}{Colors.RESET}")
-        print(f"{Colors.GREEN}[+] (Results were saved in real-time){Colors.RESET}")
         print(f"{Colors.GREEN}{'='*50}{Colors.RESET}")
     else:
         print(f"\n{Colors.RED}[!] No subdomains found for any domain{Colors.RESET}")
